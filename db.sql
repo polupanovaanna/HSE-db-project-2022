@@ -1,14 +1,14 @@
 create schema delivery;
 
---task 3
+--task 1
 
 CREATE TABLE delivery.subscription_type(
     subscription_type_id INTEGER NOT NULL,
     subscription_type_name VARCHAR(50),
-    price NUMERIC CHECK ( price > 0.0 ),
+    price NUMERIC CHECK (price > 0.0),
     duration_unit VARCHAR(20) CHECK ( duration_unit='week' OR
                                       duration_unit='month' OR
-                                      duration_unit='year' ),
+                                      duration_unit='year'),
     valid_from TIMESTAMP DEFAULT now(),
     valid_to TIMESTAMP,
 
@@ -19,18 +19,15 @@ CREATE TABLE delivery.dish(
     dish_id INTEGER PRIMARY KEY,
     dish_name VARCHAR(50),
     dish_price NUMERIC CHECK (dish_price >= 0),
-    dish_amount INTEGER CHECK ( dish_amount >= 0 )
-
+    dish_amount INTEGER CHECK (dish_amount >= 0)
 );
 
 CREATE TABLE delivery.subscription_type_X_dish(
     dish_id INTEGER NOT NULL,
     subscription_type_id INTEGER NOT NULL,
-    valid_from TIMESTAMP NOT NULL,
 
-    CONSTRAINT std_id PRIMARY KEY (dish_id, subscription_type_id, valid_from),
-    FOREIGN KEY (dish_id) REFERENCES delivery.dish (dish_id) ON DELETE CASCADE,
-    FOREIGN KEY (subscription_type_id, valid_from) REFERENCES delivery.subscription_type (subscription_type_id, valid_from) ON DELETE CASCADE
+    CONSTRAINT std_id PRIMARY KEY (dish_id, subscription_type_id),
+    FOREIGN KEY (dish_id) REFERENCES delivery.dish (dish_id) ON DELETE CASCADE
 );
 
 CREATE TABLE delivery.city_office(
@@ -41,11 +38,9 @@ CREATE TABLE delivery.city_office(
 CREATE TABLE delivery.city_office_X_subscription_type(
     office_id INTEGER NOT NULL,
     subscription_type_id INTEGER NOT NULL,
-    valid_from TIMESTAMP NOT NULL,
 
-    CONSTRAINT sost_id PRIMARY KEY (office_id, subscription_type_id, valid_from),
-    FOREIGN KEY (office_id) REFERENCES delivery.city_office (office_id) ON DELETE CASCADE,
-    FOREIGN KEY (subscription_type_id, valid_from) REFERENCES delivery.subscription_type (subscription_type_id, valid_from) ON DELETE CASCADE
+    CONSTRAINT co_X_st_id PRIMARY KEY (office_id, subscription_type_id),
+    FOREIGN KEY (office_id) REFERENCES delivery.city_office (office_id) ON DELETE CASCADE
 );
 
 CREATE TABLE delivery.user(
@@ -63,14 +58,12 @@ CREATE TABLE delivery.subscription(
     subscription_id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL,
     subscription_type_id INTEGER NOT NULL,
-    valid_from TIMESTAMP NOT NULL,
     start_date TIMESTAMP DEFAULT now(),
-    end_date TIMESTAMP CHECK ( end_date > subscription.start_date ),
-    pay_type VARCHAR(20) CHECK ( pay_type='promocode' OR
+    end_date TIMESTAMP CHECK (end_date > subscription.start_date),
+    pay_type VARCHAR(20) CHECK (pay_type='promocode' OR
                                  pay_type='card'),
 
-    FOREIGN KEY (user_id) REFERENCES delivery.user (user_id) ON DELETE CASCADE,
-    FOREIGN KEY (subscription_type_id, valid_from) REFERENCES delivery.subscription_type (subscription_type_id, valid_from) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES delivery.user (user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE delivery.event(
@@ -78,13 +71,13 @@ CREATE TABLE delivery.event(
     user_id INTEGER NOT NULL,
     subscription_id INTEGER NOT NULL,
     datetime TIMESTAMP NOT NULL DEFAULT now(),
-    event_type VARCHAR(15) CHECK ( event_type='subscription' OR  event_type='unsubscription' ),
+    event_type VARCHAR(15) CHECK (event_type='subscription' OR  event_type='unsubscription'),
 
     FOREIGN KEY (user_id) REFERENCES delivery.user (user_id) ON DELETE CASCADE,
     FOREIGN KEY (subscription_id) REFERENCES delivery.subscription (subscription_id) ON DELETE CASCADE
 );
 
---task 4
+--task 2
 
 set datestyle = 'DMY';
 
@@ -116,15 +109,15 @@ VALUES (1, 'базовая 1200', 4000, 'month', '11.12.2022', '11.12.2024'),
        (6, 'на неделю', 999, 'week', '11.12.2020', '10.12.2022');
 
 
-INSERT INTO delivery.subscription(subscription_id, user_id, subscription_type_id, valid_from, start_date, end_date, pay_type)
-VALUES (1, 1, 2, '11.12.2020', '11.12.2021', '29.07.2022', 'card'),
-       (2, 7, 1, '11.12.2022', '12.12.2022', '29.05.2023', 'card'),
-       (3, 2, 3, '11.12.2022', '13.12.2022', '29.04.2023', 'card'),
-       (4, 3, 4, '11.12.2022', '14.12.2022', '24.12.2023', 'promocode'),
-       (5, 3, 5, '11.12.2022', '15.12.2022', '11.02.2024', 'card'),
-       (6, 5, 6, '11.12.2022', '16.12.2022', '31.12.2022', 'card'),
-       (7, 6, 1, '11.12.2022', '17.12.2022', '24.02.2024', 'card'),
-       (8, 2, 2, '11.12.2020', '18.12.2020', '01.09.2022', 'card');
+INSERT INTO delivery.subscription(subscription_id, user_id, subscription_type_id, start_date, end_date, pay_type)
+VALUES (1, 1, 2, '11.12.2021', '29.07.2022', 'card'),
+       (2, 7, 1, '12.12.2022', '29.05.2023', 'card'),
+       (3, 2, 3, '13.12.2022', '29.04.2023', 'card'),
+       (4, 3, 4, '14.12.2022', '24.12.2023', 'promocode'),
+       (5, 3, 5, '15.12.2022', '11.02.2024', 'card'),
+       (6, 5, 6, '16.12.2022', '31.12.2022', 'card'),
+       (7, 6, 1, '17.12.2022', '24.02.2024', 'card'),
+       (8, 2, 2, '18.12.2020', '01.09.2022', 'card');
 
 INSERT INTO delivery.event(event_id, user_id, subscription_id, datetime, event_type)
 VALUES (1, 1, 1, '11.12.2021', 'subscription'),
@@ -136,13 +129,12 @@ VALUES (1, 1, 1, '11.12.2021', 'subscription'),
        (7, 6, 7, '17.12.2022', 'subscription'),
        (8, 1, 8, '18.12.2020', 'subscription');
 
-INSERT INTO delivery.city_office_X_subscription_type(office_id, subscription_type_id, valid_from)
-VALUES (1, 1, '11.12.2022'), (1, 2, '11.12.2022'), (1,3, '11.12.2022'), (1,4, '11.12.2022'), (1,5, '11.12.2022'), (1,6, '11.12.2022'),
-       (2, 1, '11.12.2022'), (2, 2, '11.12.2022'), (2,3, '11.12.2022'), (2,4, '11.12.2022'), (2,5, '11.12.2022'), (2,6, '11.12.2022'),
-       (3, 1, '11.12.2022'), (3, 2, '11.12.2022'), (3,3, '11.12.2022'),
-       (4, 1, '11.12.2022'), (4, 2, '11.12.2022'), (4,3, '11.12.2022'),
-       (5, 1, '11.12.2022'), (5, 2, '11.12.2022'), (5,3, '11.12.2022'), (5, 4, '11.12.2022'),
-       (1, 2, '11.12.2020'), (1, 6, '11.12.2020');
+INSERT INTO delivery.city_office_X_subscription_type(office_id, subscription_type_id)
+VALUES (1, 1), (1, 2), (1,3), (1,4), (1,5), (1,6),
+       (2, 1), (2, 2), (2,3), (2,4), (2,5), (2,6),
+       (3, 1), (3, 2), (3,3),
+       (4, 1), (4, 2), (4,3),
+       (5, 1), (5, 2), (5,3), (5, 4);
 
 INSERT INTO delivery.dish(dish_id, dish_name, dish_price, dish_amount)
 VALUES (1, 'плов', 200, 10),
@@ -154,19 +146,15 @@ VALUES (1, 'плов', 200, 10),
        (7, 'салат цезарь', 300, 40),
        (8, 'шоколадный торт', 230, 23);
 
-INSERT INTO delivery.subscription_type_X_dish(dish_id, subscription_type_id, valid_from)
-VALUES (1, 2, '11.12.2022'), (1, 3, '11.12.2022'), (1, 6, '11.12.2022'),
-       (2, 1, '11.12.2022'), (2, 2, '11.12.2022'), (2, 6, '11.12.2022'),
-       (3, 1, '11.12.2022'), (3, 2, '11.12.2022'), (3, 4, '11.12.2022'), (3, 5, '11.12.2022'),
-       (4, 3, '11.12.2022'), (4, 6, '11.12.2022'),
-       (5, 1, '11.12.2022'), (5, 2, '11.12.2022'), (5, 3, '11.12.2022'), (5, 4, '11.12.2022'), (5, 5, '11.12.2022'),
-       (6, 1, '11.12.2022'), (6, 2, '11.12.2022'), (6, 6, '11.12.2022'),
-       (7, 1, '11.12.2022'), (7, 2, '11.12.2022'), (7, 3, '11.12.2022'), (7, 5, '11.12.2022'), (7, 6, '11.12.2022'),
-       (8, 3, '11.12.2022'), (8, 6, '11.12.2022'),
-       (1, 2, '11.12.2020'), (2, 2, '11.12.2020'),
-       (1, 6, '11.12.2020'), (2, 6, '11.12.2020'), (3, 6, '11.12.2020'), (4, 6, '11.12.2020'), (6, 6, '11.12.2020'),
-       (7, 6, '11.12.2020'), (8, 6, '11.12.2020');
-
+INSERT INTO delivery.subscription_type_X_dish(dish_id, subscription_type_id)
+VALUES (1, 2), (1, 3), (1, 6),
+       (2, 1), (2, 2), (2, 6),
+       (3, 1), (3, 2), (3, 4), (3, 5),
+       (4, 3), (4, 6),
+       (5, 1), (5, 2), (5, 3), (5, 4), (5, 5),
+       (6, 1), (6, 2), (6, 6),
+       (7, 1), (7, 2), (7, 3), (7, 5), (7, 6),
+       (8, 3), (8, 6);
 
 --task 5
 
@@ -176,9 +164,9 @@ VALUES (9, 'морс', 50, 1);
 INSERT INTO delivery.dish(dish_id, dish_name, dish_price, dish_amount)
 VALUES (10, 'тофу', 230, 5);
 
-INSERT INTO delivery.subscription_type_X_dish(dish_id, subscription_type_id, valid_from)
-VALUES (9, 1, '11.12.2022'), (9, 2, '11.12.2022'), (9, 3, '11.12.2022'), (9, 4, '11.12.2022'), (9, 5, '11.12.2022'), (9, 6, '11.12.2022'),
-       (10, 4, '11.12.2022');
+INSERT INTO delivery.subscription_type_X_dish(dish_id, subscription_type_id)
+VALUES (9, 1), (9, 2), (9, 3), (9, 4), (9, 5), (9, 6),
+       (10, 4);
 
 SELECT dish_name, dish_price FROM delivery.dish;
 
@@ -192,8 +180,8 @@ DELETE FROM delivery.subscription_type_X_dish WHERE dish_id = 9;
 
 -- человек, у которого не было подписки раньше, совершил новую
 
-INSERT INTO delivery.subscription(subscription_id, user_id, subscription_type_id, valid_from, end_date, pay_type)
-VALUES (9, 5, 5, '11.12.2022', now() + interval '1 year', 'card');
+INSERT INTO delivery.subscription(subscription_id, user_id, subscription_type_id, end_date, pay_type)
+VALUES (9, 5, 5, now() + interval '1 year', 'card');
 
 INSERT INTO delivery.event(event_id, user_id, subscription_id, datetime, event_type)
 VALUES (9, 5, 9, (SELECT start_date FROM delivery.subscription WHERE subscription_id = 9), 'subscription');
@@ -215,26 +203,36 @@ VALUES (10, 2, 3, (SELECT end_date FROM delivery.subscription WHERE subscription
 SELECT DISTINCT city_name FROM
     delivery.city_office co
         INNER JOIN delivery.city_office_X_subscription_type co_X_st ON co.office_id = co_X_st.office_id
-        INNER JOIN delivery.subscription_type st ON
-            co_X_st.subscription_type_id =  st.subscription_type_id AND co_X_st.valid_from = st.valid_from
-        INNER JOIN delivery.subscription_type_X_dish st_X_d ON
-            st_X_d.subscription_type_id = st.subscription_type_id AND st.valid_from = st_X_d.valid_from
+        INNER JOIN
+            (SELECT subscription_type_id, MAX(valid_from)
+             FROM delivery.subscription_type
+             GROUP BY subscription_type_id) as last_version
+            ON co_X_st.subscription_type_id = last_version.subscription_type_id
+        INNER JOIN delivery.subscription_type_X_dish st_X_d
+            ON st_X_d.subscription_type_id = last_version.subscription_type_id
         INNER JOIN delivery.dish d ON st_X_d.dish_id = d.dish_id
-    WHERE dish_name = 'тофу';
+    WHERE dish_name = 'тофу'
+    ORDER BY city_name;
 
 -- В результате запроса выводится список id и имен пользователей в алфавитном порядке из СПб
 -- или Москвы и общая сумма, которую они платят в месяц по действующей подписке, если они в месяц платят больше 5000 рублей
--- ожидаем Сергей Дымашевский - 9500 (сложили обе подписки), Иван Иванов - 8000 (учли только текущую подписку)
+-- ожидаем: Батон Павел - 8500 (заключили новую подписку в задании 5, 2 текущих)
+-- Сергей Дымашевский - 9500 (сложили обе подписки), Иван Иванов - 8000 (учли только текущую подписку)
 
 SELECT u.user_id, u.last_name || ' ' || u.first_name AS full_name,
-       SUM(CASE WHEN duration_unit='week' THEN price*4 ELSE price END) AS total_price
+       SUM(CASE WHEN
+           duration_unit = 'week'
+           THEN price * 4
+           ELSE price
+           END) AS total_price
 FROM delivery.user u
     INNER JOIN delivery.subscription s ON u.user_id = s.user_id
     INNER JOIN delivery.subscription_type st ON
-        s.subscription_type_id = st.subscription_type_id AND s.valid_from = st.valid_from
+        s.subscription_type_id = st.subscription_type_id AND
+            (s.start_date BETWEEN st.valid_from AND st.valid_to)
     INNER JOIN delivery.city_office co ON u.office_id = co.office_id
 WHERE (co.city_name = 'Москва' OR co.city_name = 'Санкт-Петербург')
-    AND end_date > now()
+    AND s.end_date > now()
 GROUP BY u.user_id, u.first_name, u.last_name
 HAVING SUM(CASE WHEN duration_unit='week' THEN price*4 ELSE price END) > 5000
 ORDER BY full_name;
@@ -248,8 +246,13 @@ SELECT u.last_name || ' ' || u.first_name AS full_name, subscription_type_name,
         price, AVG(price) over (partition by last_name) as avg_price
 FROM delivery.user u
     INNER JOIN delivery.subscription s ON u.user_id = s.user_id
-    INNER JOIN delivery.subscription_type st ON
-        s.subscription_type_id = st.subscription_type_id AND s.valid_from = st.valid_from
+    INNER JOIN
+            (SELECT subscription_type_id, MAX(valid_from) as max_valid_from
+             FROM delivery.subscription_type
+             GROUP BY subscription_type_id) as max_t
+        ON s.subscription_type_id = max_t.subscription_type_id
+    INNER JOIN delivery.subscription_type st
+        ON max_t.subscription_type_id = st.subscription_type_id AND max_t.max_valid_from = st.valid_from
 WHERE s.end_date > now();
 
 -- Вывести полные имена пользователей, их текущие подписки, а также предыдущие для текущей подписки
@@ -264,9 +267,10 @@ FROM (SELECT u.user_id, u.last_name || ' ' || u.first_name AS full_name, subscri
              LAG(subscription_type_name) OVER (PARTITION BY last_name ORDER BY start_date) AS previous_subscr,
              LAG(start_date) OVER (PARTITION BY last_name ORDER BY start_date) AS previous_start_date
     FROM delivery.user u
-    INNER JOIN delivery.subscription s ON u.user_id = s.user_id
-    INNER JOIN delivery.subscription_type st ON
-        s.subscription_type_id = st.subscription_type_id AND s.valid_from = st.valid_from) as tt
+        INNER JOIN delivery.subscription s ON u.user_id = s.user_id
+        INNER JOIN delivery.subscription_type st ON
+            s.subscription_type_id = st.subscription_type_id AND
+            (s.start_date BETWEEN st.valid_from AND st.valid_to)) as tt
 WHERE tt.end_date > now();
 
 -- Вывести id + полное имя пользователей, таких, что у них сумма оплаты за все время (число полных месяцев от начала подписки * стоимость подписки)
@@ -283,7 +287,8 @@ SELECT u.user_id, u.last_name || ' ' || u.first_name AS full_name,
 FROM delivery.user u
     INNER JOIN delivery.subscription s ON u.user_id = s.user_id
     INNER JOIN delivery.subscription_type st ON
-        s.subscription_type_id = st.subscription_type_id AND s.valid_from = st.valid_from
+        s.subscription_type_id = st.subscription_type_id AND
+        (s.start_date BETWEEN st.valid_from AND st.valid_to)
     CROSS JOIN now() as tmp
 GROUP BY u.user_id, full_name
 HAVING SUM(CASE WHEN duration_unit='week' THEN st.price * floor(DATE_PART('day',
