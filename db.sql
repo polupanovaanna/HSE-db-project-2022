@@ -99,13 +99,13 @@ VALUES (1, 1, 'Анна', 'Полупанова', '+7(921)979-65-94', 'ania@mail
 
 
 INSERT INTO delivery.subscription_type(subscription_type_id, subscription_type_name, price, duration_unit, valid_from, valid_to)
-VALUES (1, 'базовая 1200', 4000, 'month', '11.12.2022', '11.12.2024'),
-       (2, 'базовая 2000', 6000, 'month', '11.12.2022', '11.12.2024'),
+VALUES (1, 'базовая 1200', 4000, 'month', '11.12.2022', '31.12.2999'),
+       (2, 'базовая 2000', 6000, 'month', '11.12.2022', '31.12.2999'),
        (2, 'базовая 2000', 5000, 'month', '11.12.2020', '10.12.2022'),
-       (3, 'базовая 2500', 8000, 'month', '11.12.2022', '11.12.2024'),
-       (4, 'вегетарианская', 5000, 'month', '11.12.2022', '11.12.2024'),
-       (5, 'без глютена', 4500, 'month', '11.12.2022', '11.12.2024'),
-       (6, 'на неделю', 1000, 'week', '11.12.2022', '11.12.2024'),
+       (3, 'базовая 2500', 8000, 'month', '11.12.2022', '31.12.2999'),
+       (4, 'вегетарианская', 5000, 'month', '11.12.2022', '31.12.2999'),
+       (5, 'без глютена', 4500, 'month', '11.12.2022', '31.12.2999'),
+       (6, 'на неделю', 1000, 'week', '11.12.2022', '31.12.2999'),
        (6, 'на неделю', 999, 'week', '11.12.2020', '10.12.2022');
 
 
@@ -203,16 +203,14 @@ VALUES (10, 2, 3, (SELECT end_date FROM delivery.subscription WHERE subscription
 SELECT DISTINCT city_name FROM
     delivery.city_office co
         INNER JOIN delivery.city_office_X_subscription_type co_X_st ON co.office_id = co_X_st.office_id
-        INNER JOIN
-            (SELECT subscription_type_id, MAX(valid_from)
-             FROM delivery.subscription_type
-             GROUP BY subscription_type_id) as last_version
-            ON co_X_st.subscription_type_id = last_version.subscription_type_id
+        INNER JOIN delivery.subscription_type st
+            ON co_X_st.subscription_type_id = st.subscription_type_id AND st.valid_to = '31.12.2999'
         INNER JOIN delivery.subscription_type_X_dish st_X_d
-            ON st_X_d.subscription_type_id = last_version.subscription_type_id
+            ON st_X_d.subscription_type_id = st.subscription_type_id
         INNER JOIN delivery.dish d ON st_X_d.dish_id = d.dish_id
     WHERE dish_name = 'тофу'
     ORDER BY city_name;
+
 
 -- В результате запроса выводится список id и имен пользователей в алфавитном порядке из СПб
 -- или Москвы и общая сумма, которую они платят в месяц по действующей подписке, если они в месяц платят больше 5000 рублей
@@ -239,21 +237,17 @@ ORDER BY full_name;
 
 
 -- Вывести имена пользователей, которые приобретали хотя бы одну подписку, их текущие подписки,
--- и среднюю стоимость подписки у пользователя
+-- и среднюю стоимость подписки у пользователя по алфавиту в первую очередь и по возрастанию цены подписки во вторую
 -- ожидается: см файл с ожидаемыми результатами
 
-SELECT u.last_name || ' ' || u.first_name AS full_name, subscription_type_name,
-        price, AVG(price) over (partition by last_name) as avg_price
+SELECT u.last_name || ' ' || u.first_name AS full_name, st.subscription_type_name,
+        st.price, AVG(st.price) over (partition by last_name) as avg_price
 FROM delivery.user u
     INNER JOIN delivery.subscription s ON u.user_id = s.user_id
-    INNER JOIN
-            (SELECT subscription_type_id, MAX(valid_from) as max_valid_from
-             FROM delivery.subscription_type
-             GROUP BY subscription_type_id) as max_t
-        ON s.subscription_type_id = max_t.subscription_type_id
     INNER JOIN delivery.subscription_type st
-        ON max_t.subscription_type_id = st.subscription_type_id AND max_t.max_valid_from = st.valid_from
-WHERE s.end_date > now();
+        ON s.subscription_type_id = st.subscription_type_id AND st.valid_to = '31.12.2999'
+WHERE s.end_date > now()
+ORDER BY full_name, price;
 
 -- Вывести полные имена пользователей, их текущие подписки, а также предыдущие для текущей подписки
 -- предыдущая подписка - такая, что у нее дата начала раньше
